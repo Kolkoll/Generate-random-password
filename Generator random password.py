@@ -1,11 +1,14 @@
 from pynput.mouse import Controller
 import time
+import math
 
 
 def main_function():
     print("Введите длину пароля")
     # Ввод длины пароля и проверка введенного значения
     length_password = ""
+    alphabet = "0123456789abcdefghigklmnopqrstyvwxyzQWERTYUIOPZXCVBNMLKJHGFDSA_"
+    amount_of_signs = math.ceil(math.log(len(alphabet), 2))
     while True:
         length_password = input()
         try:
@@ -19,14 +22,14 @@ def main_function():
         return
     random_data = []
     while True:
-        create_entropy(random_data, length_password)
+        create_entropy(random_data, length_password, amount_of_signs)
         count_0 = check_entropy(random_data)
-        count_1 = length_password * 6 - count_0
-        if count_1 / count_0 < 0.8 and count_1 / count_0 > 1.3:
+        count_1 = length_password * amount_of_signs - count_0
+        if count_1 / count_0 < 0.8 and (count_1 / count_0) > 1.3:
             print("Попробуйте поводить мышкой еще раз")
             random_data = []
             continue
-        password = create_password(random_data, length_password)
+        password = create_password(random_data, length_password, amount_of_signs, alphabet)
         if password is None:
             print("В пароле много повторений, сгенерируем снова")
             random_data = []
@@ -38,8 +41,8 @@ def main_function():
 
 
 # Берем от пользователя источник энтропии - мышь
-def create_entropy(random_data, length_password):
-    amount_of_entropy = length_password * 3
+def create_entropy(random_data, length_password, amount_of_signs):
+    amount_of_entropy = length_password * amount_of_signs / 2
     mouse = Controller()
     random_data_format = []
     print("Через 5 секунд начинайте водить мышкой по экрану")
@@ -70,18 +73,17 @@ def check_entropy(random_data):
 
 
 # Создаем пароль
-def create_password(random_data, length_password):
-    alphabet = "0123456789abcdefghigklmnopqrstyvwxyzQWERTYUIOPZXCVBNMLKJHGFDSA_"
+def create_password(random_data, length_password, amount_of_signs, alphabet):
     binary_password = []
     for character in range(length_password):
         binary_string = ""
-        start_of_character_code = character * 6
-        for i in range(6):
+        start_of_character_code = character * amount_of_signs
+        for i in range(amount_of_signs):
             binary_string = binary_string + \
                             random_data[i + start_of_character_code][len(random_data[i + start_of_character_code]) - 1]
         binary_password.append(binary_string)
     for character in range(len(binary_password)):
-        binary_password[character] = int(binary_password[character], 2) % 63
+        binary_password[character] = int(binary_password[character], 2) % len(alphabet)
     quality = confirm_quality_password(binary_password, length_password)
     if quality is False:
         print("Пароль содержит недопустимое количество повторений")
@@ -89,7 +91,7 @@ def create_password(random_data, length_password):
     else:
         password = ""
         for character in range(len(binary_password)):
-            password = password + alphabet[binary_password[character]]
+            password += alphabet[binary_password[character]]
         return password
 
 
